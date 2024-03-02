@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  investimentos:
+    build: .
+    volumes:
+      - .:/app # Monta o diretório do projeto no container, ajuste se o caminho for diferente
+    ports:
+      - "8888:8888" # Mapeia portas se necessário, ajuste conforme o seu caso
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: /bin/bash -c "poetry run python src/reporting/generate_report.py"
+    stdin_open: true
+    tty: true
