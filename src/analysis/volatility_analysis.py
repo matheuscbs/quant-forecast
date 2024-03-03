@@ -1,4 +1,5 @@
 from arch import arch_model
+from arch.__future__ import reindexing
 from src.analysis.i_analysis import IAnalysis
 
 

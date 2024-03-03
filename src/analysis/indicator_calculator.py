@@ -19,3 +19,9 @@ class IndicatorCalculator:
         ema = data[column].ewm(span=period, adjust=False).mean()
         data[f'EMA_{period}'] = ema
         return data
+
+    @staticmethod
+    def calculate_HiLo(data, high_column='High', low_column='Low', period=14):
+        data['HiLo_High'] = data[high_column].rolling(window=period).max()
+        data['HiLo_Low'] = data[low_column].rolling(window=period).min()
+        return data

@@ -31,7 +31,7 @@ class ProphetAnalysis(IAnalysis):
         logging.info("Starting cross-validation")
         initial, period, horizon = DataPreparation.calculate_adaptive_parameters(self.data, self.future_periods)
         df_cv = cross_validation(self.model, initial=initial, period=period, horizon=horizon)
-        self.plotter.plot_cross_validation_metric(df_cv, "mape", "MAPE Metric")
+        self.plotter.plot_cross_validation_metric(df_cv, "mape", "MAPE Metric", self.ticker)
         logging.info("Cross-validation completed.")
 
     def make_forecast(self):
