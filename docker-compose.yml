@@ -8,6 +8,6 @@ services:
       - "8888:8888" # Mapeia portas se necessário, ajuste conforme o seu caso
     environment:
       - PYTHONUNBUFFERED=1
-    command: /bin/bash -c "poetry run python src/reporting/generate_report.py"
+    command: /bin/bash -c "poetry run python main.py"
     stdin_open: true
     tty: true

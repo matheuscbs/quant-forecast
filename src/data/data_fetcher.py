@@ -1,15 +1,10 @@
 import logging
-from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 import yfinance as yf
+from src.data.i_data_fetcher import IDataFetcher
 
-
-class IDataFetcher(ABC):
-    @abstractmethod
-    def fetch_data(self, ticker, period):
-        pass
 
 class YahooFinanceFetcher(IDataFetcher):
     def __init__(self):

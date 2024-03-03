@@ -5,15 +5,15 @@ import mplfinance as mpf
 import pandas as pd
 import seaborn as sns
 import yfinance as yf
-from prophet.plot import add_changepoints_to_plot
+from prophet.plot import add_changepoints_to_plot, plot_cross_validation_metric
+from src.analysis.strategy_evaluator import StrategyEvaluator
 
 
 class Plotter:
     @staticmethod
     def plot_last_days_forecast(data, forecast, future_periods, ticker, historical_periods=-30):
-        historical_periods = data[historical_periods:]
-        last_historical_point = historical_periods.iloc[-1]
-
+        historical_data = data.tail(-historical_periods)
+        last_historical_point = historical_data.iloc[-1]
         forecast_start = forecast[forecast['ds'] == last_historical_point['ds']]
         if not forecast_start.empty:
             gap = last_historical_point['y'] - forecast_start['yhat'].values[0]
@@ -21,26 +21,25 @@ class Plotter:
             forecast['yhat_upper'] += gap
             forecast['yhat_lower'] += gap
 
-        complete_forecast = forecast[forecast['ds'] >= last_historical_point['ds']]
-
         plt.figure(figsize=(10, 6))
-        plt.plot(historical_periods['ds'], historical_periods['y'], label='Historical Data')
-        plt.plot(complete_forecast['ds'], complete_forecast['yhat'], label='Forecast', color='blue')
-        plt.fill_between(complete_forecast['ds'], complete_forecast['yhat_lower'], complete_forecast['yhat_upper'], color='gray', alpha=0.5, label='Error Margin')
+        plt.plot(historical_data['ds'], historical_data['y'], label='Dados Históricos', color='black')
+        plt.plot(forecast['ds'], forecast['yhat'], label='Previsão', color='blue')
+        plt.fill_between(forecast['ds'], forecast['yhat_lower'], forecast['yhat_upper'], color='gray', alpha=0.5, label='Margem de Erro')
 
-        plt.xlabel('Date')
-        plt.ylabel('Price')
-        plt.title(f'Last 30 Days and Future Forecast - {ticker}')
+        plt.title(f'Últimos {abs(historical_periods)} Dias e Previsão Futura - {ticker}')
+        plt.xlabel('Data')
+        plt.ylabel('Preço')
         plt.legend()
+        plt.tight_layout()
+
         plt.savefig(f"last_days_forecast_{ticker}.png")
         plt.close()
 
-    @staticmethod
-    def plot_forecast(ticker, model, forecast):
+    def plot_prophet_forecast(self, ticker, model, forecast):
         plt.figure(figsize=(15, 8))
         fig = model.plot(forecast)
         add_changepoints_to_plot(fig.gca(), model, forecast)
-        plt.title(f"Price Forecast - {ticker}")
+        plt.title(f"Price Forecast for {ticker}")
         plt.xlabel("Date")
         plt.ylabel("Price")
         plt.legend(loc='upper left')
@@ -55,17 +54,40 @@ class Plotter:
         plt.close()
 
     @staticmethod
-    def plot_correlation(assets, period='5y'):
-        prices = pd.DataFrame()
-        for asset in assets:
-            prices[asset] = yf.download(asset, period=period)['Adj Close']
+    def plot_hilo_strategy(price_data, best_period, ticker):
+        hilo_long, hilo_short = StrategyEvaluator.hilo_activator(price_data['High'], price_data['Low'], int(best_period))
+        price_data['HiLo_Long'] = hilo_long
+        price_data['HiLo_Short'] = hilo_short
+        plt.figure(figsize=(14, 7))
+        plt.plot(price_data.index, price_data['Close'], label='Close Price', color='black')
+        plt.plot(price_data.index, price_data['HiLo_Long'], label='HiLo Long', color='green', linestyle='--')
+        plt.plot(price_data.index, price_data['HiLo_Short'], label='HiLo Short', color='red', linestyle='--')
+        buy_signals = price_data['Close'] > price_data['HiLo_Long']
+        sell_signals = price_data['Close'] < price_data['HiLo_Short']
+        plt.plot(price_data[buy_signals].index, price_data['Close'][buy_signals], '^', markersize=10, color='g', label='Buy Signal')
+        plt.plot(price_data[sell_signals].index, price_data['Close'][sell_signals], 'v', markersize=10, color='r', label='Sell Signal')
+
+        plt.title(f"HiLo Activator Strategy for {ticker} - Best Period: {best_period} Days")
+        plt.xlabel('Date')
+        plt.ylabel('Price')
+        plt.legend()
+        plt.savefig(f"HiLo_Strategy_{ticker}.png")
+        plt.close()
+
+    @staticmethod
+    def plot_correlation(prices, title='Stock Correlation Matrix'):
+        """
+        Plota a matriz de correlação dos retornos dos ativos.
+
+        :param prices: DataFrame com os preços de fechamento ajustados dos ativos.
+        :param title: Título do gráfico.
+        """
         correlation = prices.pct_change().corr()
         plt.figure(figsize=(10, 8))
         sns.heatmap(correlation, annot=True, cmap='coolwarm', fmt=".2f")
-        plt.title('Stock Correlation Matrix')
+        plt.title(title)
         plt.savefig("correlation_matrix.png")
         plt.close()
-        return correlation
 
     @staticmethod
     def plot_with_indicators(data, last_days=60):
@@ -99,4 +121,11 @@ class Plotter:
         plt.ylabel('Volatilidade (%)')
         plt.legend(['Volatilidade Prevista'])
         plt.savefig(filename)
+        plt.close()
+
+    @staticmethod
+    def plot_cross_validation_metric(df_cv, metric, title):
+        plot_cross_validation_metric(df_cv, metric=metric)
+        plt.title(title)
+        plt.savefig(f"{metric}_metric.png", dpi=300)
         plt.close()
