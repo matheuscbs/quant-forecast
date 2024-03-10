@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class PDFReporter:
     def __init__(self, filepath, image_path):
         self.filepath = filepath
-        self.image_path = image_path  # Adiciona o caminho da imagem como um atributo de instância
+        self.image_path = image_path
         self.document = SimpleDocTemplate(filepath, pagesize=letter)
         self.styles = getSampleStyleSheet()
         self.elements = []
@@ -20,18 +20,20 @@ class PDFReporter:
         self.elements.append(Paragraph(f"Relatório de Análise - {ticker}", self.styles['Title']))
         self.elements.append(Spacer(1, 12))
 
-        for title, description, filename in zip(titles, descriptions, filenames):
+        for i, (title, description) in enumerate(zip(titles, descriptions)):
             self.elements.append(Paragraph(title, self.styles['Heading2']))
             self.elements.append(Spacer(1, 12))
             self.elements.append(Paragraph(description, self.styles['Normal']))
             self.elements.append(Spacer(1, 12))
 
-            image_path = os.path.join(self.image_path, filename)
-            if os.path.exists(image_path):
-                self.elements.append(Image(image_path, width=6 * inch, height=4 * inch))
-                self.elements.append(Spacer(1, 12))
-            else:
-                logging.warning(f"Image not found: {image_path}")
+            if i < len(filenames):
+                image_path = os.path.join(self.image_path, filenames[i])
+                if os.path.exists(image_path):
+                    self.elements.append(Image(image_path, width=6 * inch, height=4 * inch))
+                else:
+                    logging.warning(f"Imagem não encontrada: {image_path}")
+
+            self.elements.append(Spacer(1, 12))
 
         self.document.build(self.elements)
 

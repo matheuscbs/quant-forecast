@@ -3,7 +3,7 @@ from src.reporting.generate_report import ReportGenerator
 from src.reporting.pdf_report import PDFReportBuilder
 
 if __name__ == "__main__":
-    ticker = 'PETR4.SA'
+    ticker = 'WEGE3.SA'
     period = '5y'
     historical_period = 60
     future_period = 30

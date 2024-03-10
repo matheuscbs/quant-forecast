@@ -3,11 +3,17 @@ services:
   investimentos:
     build: .
     volumes:
-      - .:/app # Monta o diretório do projeto no container, ajuste se o caminho for diferente
+      - .:/app
     ports:
-      - "8888:8888" # Mapeia portas se necessário, ajuste conforme o seu caso
+      - "8888:8888"
     environment:
       - PYTHONUNBUFFERED=1
     command: /bin/bash -c "poetry run python main.py"
     stdin_open: true
     tty: true
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G

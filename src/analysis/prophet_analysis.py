@@ -1,14 +1,11 @@
 import logging
-from abc import ABC, abstractmethod
 
 from prophet.diagnostics import cross_validation
 from src.analysis.i_analysis import IAnalysis
 from src.data.data_preparation import DataPreparation
 from src.optimization.hyperparameter_optimization import OptunaOptimization
-from src.plotting.plotter import Plotter
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 class ProphetAnalysis(IAnalysis):
     def __init__(self, ticker, data, future_periods, country_name='BR'):
@@ -19,7 +16,6 @@ class ProphetAnalysis(IAnalysis):
         self.optuna_optimization = OptunaOptimization(country_name=country_name)
         self.model = None
         self.forecast = None
-        self.plotter = Plotter()
 
     def optimize_and_fit(self):
         logging.info("Starting hyperparameter optimization")
@@ -31,22 +27,24 @@ class ProphetAnalysis(IAnalysis):
         logging.info("Starting cross-validation")
         initial, period, horizon = DataPreparation.calculate_adaptive_parameters(self.data, self.future_periods)
         df_cv = cross_validation(self.model, initial=initial, period=period, horizon=horizon)
-        self.plotter.plot_cross_validation_metric(df_cv, "mape", "MAPE Metric", self.ticker)
         logging.info("Cross-validation completed.")
+        return df_cv
 
     def make_forecast(self):
         logging.info("Generating forecasts")
         future = self.model.make_future_dataframe(periods=self.future_periods)
         self.forecast = self.model.predict(future)
+        return self.forecast
 
     def run_analysis(self):
         if self.data is not None:
             self.optimize_and_fit()
-            self.cross_validate_model()
-            self.make_forecast()
-            self.plotter.plot_prophet_forecast(self.ticker, self.model, self.forecast)
+            df_cv = self.cross_validate_model()
+            forecast = self.make_forecast()
+            return self.model, forecast, df_cv
         else:
             logging.error("Analysis cannot be completed due to data preparation issues.")
+            return None, None, None
 
     def analyze(self):
-        self.run_analysis()
+        return self.run_analysis()
