@@ -6,9 +6,10 @@ services:
       - .:/app
     ports:
       - "8888:8888"
+      - "5678:5678"
     environment:
       - PYTHONUNBUFFERED=1
-    command: /bin/bash -c "poetry run python main.py"
+    command: /bin/bash -c "poetry run python -m debugpy --listen 0.0.0.0:5678 main.py"
     stdin_open: true
     tty: true
     deploy:

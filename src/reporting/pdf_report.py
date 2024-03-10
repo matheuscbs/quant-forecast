@@ -9,37 +9,37 @@ from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class PDFReporter:
-    def __init__(self, filepath, image_path):
+    def __init__(self, filepath):
         self.filepath = filepath
-        self.image_path = image_path
         self.document = SimpleDocTemplate(filepath, pagesize=letter)
         self.styles = getSampleStyleSheet()
         self.elements = []
 
-    def generate_report(self, ticker, titles, descriptions, filenames):
-        self.elements.append(Paragraph(f"Relatório de Análise - {ticker}", self.styles['Title']))
+    def _add_paragraph(self, text, style):
+        self.elements.append(Paragraph(text, self.styles[style]))
         self.elements.append(Spacer(1, 12))
 
-        for i, (title, description) in enumerate(zip(titles, descriptions)):
-            self.elements.append(Paragraph(title, self.styles['Heading2']))
+    def _add_image(self, image_path):
+        if os.path.isfile(image_path):
+            self.elements.append(Image(image_path, width=6 * inch, height=4 * inch))
             self.elements.append(Spacer(1, 12))
-            self.elements.append(Paragraph(description, self.styles['Normal']))
-            self.elements.append(Spacer(1, 12))
+        else:
+            logging.warning(f"Imagem não encontrada: {image_path}")
 
-            if i < len(filenames):
-                image_path = os.path.join(self.image_path, filenames[i])
-                if os.path.exists(image_path):
-                    self.elements.append(Image(image_path, width=6 * inch, height=4 * inch))
-                else:
-                    logging.warning(f"Imagem não encontrada: {image_path}")
+    def generate_report(self, ticker, titles, descriptions, filenames_list):
+        self._add_paragraph(f"Relatório de Análise - {ticker}", 'Title')
 
-            self.elements.append(Spacer(1, 12))
+        for title, description, filenames in zip(titles, descriptions, filenames_list):
+            self._add_paragraph(title, 'Heading2')
+            self._add_paragraph(description, 'Normal')
+            for image_path in filenames:
+                self._add_image(image_path)
 
         self.document.build(self.elements)
 
 class PDFReportBuilder:
-    def __init__(self, filepath, image_path):
-        self.reporter = PDFReporter(filepath, image_path)
+    def __init__(self, filepath):
+        self.reporter = PDFReporter(filepath)
 
-    def build(self, ticker, titles, descriptions, filenames):
-        self.reporter.generate_report(ticker, titles, descriptions, filenames)
+    def build(self, ticker, titles, descriptions, filenames_list):
+        self.reporter.generate_report(ticker, titles, descriptions, filenames_list)

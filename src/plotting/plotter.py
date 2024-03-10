@@ -1,5 +1,6 @@
 import os
 
+import config
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import mplfinance as mpf
@@ -11,23 +12,29 @@ from prophet.plot import add_changepoints_to_plot, plot_cross_validation_metric
 
 class Plotter:
     def __init__(self, ticker, last_days=None, future_periods=None):
-        self.image_path = "/app/relatorios/images/"
+        self.image_path = config.IMAGE_PATH
         self.ticker = ticker
         self.last_days = last_days
         self.future_periods = future_periods
         self.filenames = self.generate_filenames()
+        self.ensure_directory_exists(self.image_path)
+
+    def ensure_directory_exists(self, directory_path):
+        os.makedirs(directory_path, exist_ok=True)
 
     def generate_filenames(self):
-        return {
-            "last_days_forecast": f"last_days_forecast_{self.ticker}.png",
-            "forecast": f"forecast_{self.ticker}.png",
-            "components": f"components_{self.ticker}.png",
-            "HiLo_Strategy": f"HiLo_Strategy_{self.ticker}.png",
-            "correlation_matrix": f"correlation_matrix_{self.ticker}.png",
-            "candlestick_RSI": f"candlestick_RSI_{self.last_days}_days_{self.ticker}.png" if self.last_days else f"candlestick_RSI_{self.ticker}.png",
-            "volatility": f"volatility_{self.ticker}.png",
-            "metric": f"metric_{self.ticker}.png"
+        base_path = self.image_path
+        filenames = {
+            "last_days_forecast": os.path.join(base_path, f"last_days_forecast_{self.ticker}.png"),
+            "forecast": os.path.join(base_path, f"forecast_{self.ticker}.png"),
+            "components": os.path.join(base_path, f"components_{self.ticker}.png"),
+            "HiLo_Strategy": os.path.join(base_path, f"HiLo_Strategy_{self.ticker}.png"),
+            "correlation_matrix": os.path.join(base_path, f"correlation_matrix_{self.ticker}.png"),
+            "candlestick_RSI": os.path.join(base_path, f"candlestick_RSI_{self.last_days}_days_{self.ticker}.png") if self.last_days else os.path.join(base_path, f"candlestick_RSI_{self.ticker}.png"),
+            "volatility": os.path.join(base_path, f"volatility_{self.ticker}.png"),
+            "metric": os.path.join(base_path, f"metric_{self.ticker}.png"),
         }
+        return filenames
 
     def plot_last_days_forecast(self, data, forecast, future_periods, ticker, historical_periods=30):
         historical_data = data.tail(historical_periods)

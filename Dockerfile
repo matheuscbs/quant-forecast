@@ -13,6 +13,8 @@ ENV PYTHONPATH="/app"
 RUN pip install --no-cache-dir poetry && \
     poetry config virtualenvs.create false
 
+RUN pip install debugpy
+
 # Copia o pyproject.toml e, opcionalmente, o poetry.lock para /app
 COPY pyproject.toml poetry.lock* /app/
 

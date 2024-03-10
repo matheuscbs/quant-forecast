@@ -11,10 +11,8 @@ if __name__ == "__main__":
     data_fetcher = YahooFinanceFetcher()
     data = data_fetcher.fetch_data(ticker, period)
 
-    report_path = f"/app/relatorios/Relatorio_Analise_{ticker}.pdf"
-
     if data is not None:
-        report_generator = ReportGenerator(ticker, data, period, historical_period, future_period, report_path)
+        report_generator = ReportGenerator(ticker, data)
         report_generator.generate_report()
         # report_generator.clean_up_files()
     else:
