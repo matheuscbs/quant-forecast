@@ -2,7 +2,8 @@ import logging
 
 from prophet.diagnostics import cross_validation
 from src.analysis.i_analysis import IAnalysis
-from src.data.data_preparation import DataPreparation
+from src.optimization.data_granularity_checker import DataGranularityChecker
+from src.optimization.data_preparation import DataPreparation
 from src.optimization.hyperparameter_optimization import OptunaOptimization
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -25,7 +26,8 @@ class ProphetAnalysis(IAnalysis):
 
     def cross_validate_model(self):
         logging.info("Starting cross-validation")
-        initial, period, horizon = DataPreparation.calculate_adaptive_parameters(self.data, self.future_periods)
+        is_intraday = DataGranularityChecker.is_intraday(self.data)
+        initial, period, horizon = DataPreparation.calculate_adaptive_parameters(self.data, self.future_periods, is_intraday)
         df_cv = cross_validation(self.model, initial=initial, period=period, horizon=horizon)
         logging.info("Cross-validation completed.")
         return df_cv
