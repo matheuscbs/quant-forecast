@@ -46,13 +46,22 @@ def generate_indicator_calculator(plotter, data, **kwargs):
 
 def generate_strategy_evaluator(plotter, ticker, data, **kwargs):
     logging.info("Generating strategy evaluation")
+
+    if 'ds' in data.columns:
+        data.set_index('ds', inplace=True)
+    elif 'Date' in data.columns:
+        data.set_index('Date', inplace=True)
+    data.index = pd.to_datetime(data.index, errors='coerce')
+
+    if data.index.isnull().any():
+        logging.error("Falha na conversão do índice para DatetimeIndex após tentativas de correção.")
+        return None, None, []
+
     price_data = data[['High', 'Low', 'Close']].copy()
+
     bounds = [(1, 100)]
     best_period, best_score = StrategyEvaluator.optimize_strategy(price_data, bounds)
     hilo_long, hilo_short = StrategyEvaluator.hilo_activator(price_data['High'], price_data['Low'], int(best_period))
-
-    # Correct using DS column
-    price_data['Date'] = price_data.index if 'Date' not in price_data.columns else price_data['Date']
 
     descriptions = f"Melhor período para HiLo Activator: {best_period} dias, Resultado da Estratégia: {best_score:.2f}"
     titles = 'Avaliação da Estratégia HiLo Activator'

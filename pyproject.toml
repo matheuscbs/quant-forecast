@@ -19,6 +19,7 @@ yfinance = "^0.2.37"
 matplotlib = "^3.4.0"
 reportlab = "^4.1.0"
 mplfinance = "^0.12.10b0"
+ccxt = "^4.2.74"
 
 [build-system]
 requires = ["poetry-core"]

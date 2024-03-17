@@ -81,7 +81,10 @@ class YahooFinanceFetcher(IDataFetcher):
     def _prepare_data(self, data):
         data.reset_index(inplace=True)
         data.columns = ['ds' if str(col).lower() in ['date', 'datetime'] else col for col in data.columns]
-        data['ds'] = pd.to_datetime(data['ds'], utc=True).dt.tz_localize(None)
+        data['ds'] = pd.to_datetime(data['ds'], errors='coerce', utc=True).dt.tz_localize(None)
+        if data['ds'].isnull().any():
+            self.logger.warning("Algumas datas não puderam ser convertidas e serão removidas.")
+            data = data.dropna(subset=['ds'])
         data.rename(columns={"Open": "Open", "High": "High", "Low": "Low", "Close": "Close", "Adj Close": "y", "Volume": "Volume"}, inplace=True)
         data.dropna(how='all', inplace=True)
         data.fillna(method='ffill', inplace=True)

@@ -1,3 +1,4 @@
+import logging
 import os
 
 import config
@@ -12,6 +13,7 @@ from prophet.plot import add_changepoints_to_plot, plot_cross_validation_metric
 
 class Plotter:
     def __init__(self, ticker, last_days=None, future_periods=None):
+        self.logger = logging.getLogger(__name__)
         self.image_path = config.IMAGE_PATH
         self.ticker = ticker
         self.last_days = last_days
@@ -82,23 +84,33 @@ class Plotter:
         return self.filenames["components"]
 
     def plot_hilo_strategy(self, price_data, best_period, ticker, hilo_long, hilo_short):
-        if 'Date' not in price_data.columns:
-            price_data['Date'] = price_data.index
+        if 'ds' in price_data.columns:
+            price_data.set_index('ds', inplace=True)
+        price_data.index = pd.to_datetime(price_data.index, errors='coerce')
+        if price_data.index.isnull().any():
+            self.logger.error("Falha na conversão do índice para DatetimeIndex. Verifique os dados de entrada.")
+            return None
 
-        price_data['HiLo_Long'] = hilo_long
-        price_data['HiLo_Short'] = hilo_short
+        print('Price index min \n')
+        print(price_data.index.min())
+        print('Price index max \n')
+        print(price_data.index.max())
+
+        if not isinstance(hilo_long, pd.Series):
+            hilo_long = pd.Series(hilo_long, index=price_data.index)
+        if not isinstance(hilo_short, pd.Series):
+            hilo_short = pd.Series(hilo_short, index=price_data.index)
+
+        buy_signals = price_data['Close'] > hilo_long
+        sell_signals = price_data['Close'] < hilo_short
 
         fig, ax = plt.subplots(figsize=(14, 7))
+        ax.plot(price_data.index, price_data['Close'], label='Close Price', color='black')
+        ax.plot(price_data.index, hilo_long, label='HiLo Long', color='green', linestyle='--')
+        ax.plot(price_data.index, hilo_short, label='HiLo Short', color='red', linestyle='--')
 
-        ax.plot(price_data['Date'], price_data['Close'], label='Close Price', color='black')
-        ax.plot(price_data['Date'], price_data['HiLo_Long'], label='HiLo Long', color='green', linestyle='--')
-        ax.plot(price_data['Date'], price_data['HiLo_Short'], label='HiLo Short', color='red', linestyle='--')
-
-        buy_signals = price_data['Close'] > price_data['HiLo_Long']
-        sell_signals = price_data['Close'] < price_data['HiLo_Short']
-
-        ax.plot(price_data.loc[buy_signals, 'Date'], price_data.loc[buy_signals, 'Close'], '^', markersize=10, color='g', label='Buy Signal')
-        ax.plot(price_data.loc[sell_signals, 'Date'], price_data.loc[sell_signals, 'Close'], 'v', markersize=10, color='r', label='Sell Signal')
+        ax.plot(price_data.index[buy_signals], price_data['Close'][buy_signals], '^', markersize=10, color='g', label='Buy Signal')
+        ax.plot(price_data.index[sell_signals], price_data['Close'][sell_signals], 'v', markersize=10, color='r', label='Sell Signal')
 
         ax.set_title(f"HiLo Activator Strategy for {ticker} - Best Period: {best_period} Days")
         ax.set_xlabel('Date')
@@ -106,10 +118,15 @@ class Plotter:
         ax.legend()
 
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=30))
-        fig.autofmt_xdate()
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator())
 
-        fig.savefig(os.path.join(self.image_path, self.filenames["HiLo_Strategy"]))
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
+        ax.legend()
+
+        filename = os.path.join(self.image_path, f"HiLo_Strategy_{self.ticker}.png")
+        fig.savefig(filename)
         plt.close(fig)
         return self.filenames["HiLo_Strategy"]
 
