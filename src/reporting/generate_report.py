@@ -4,6 +4,7 @@ import os
 import config
 from src.plotting.plotter import Plotter
 from src.reporting.pdf_report import PDFReportBuilder
+from src.utils.file_manager import FileManager
 
 from .analysis_utils import (generate_indicator_calculator,
                              generate_prophet_analysis,
@@ -15,14 +16,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class ReportGenerator:
     def __init__(self, data, ticker=config.TICKER, period=config.DEFAULT_PERIOD, last_days=config.DEFAULT_LAST_DAYS, future_periods=config.DEFAULT_FUTURE_PERIODS, report_path=config.REPORT_PATH):
         self.data = data
-        self.ticker = ticker
+        self.ticker = FileManager.normalize_ticker_name(ticker)
         self.period = period
         self.last_days = last_days
         self.future_periods = future_periods
         self.report_path = report_path
         self.image_paths = []
         self.plotter = Plotter(ticker, last_days, future_periods)
-        self.builder = PDFReportBuilder(os.path.join(report_path, f"{ticker}_report.pdf"))
+        report_file_path = os.path.join(report_path, f"{self.ticker}_report.pdf")
+        FileManager.ensure_directory_exists(os.path.dirname(report_file_path))
+        FileManager.ensure_directory_exists(self.report_path)
+        self.builder = PDFReportBuilder(report_file_path)
 
     def generate_report(self):
         logging.info("Iniciando a geração do relatório")

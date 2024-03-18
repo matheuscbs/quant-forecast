@@ -9,20 +9,18 @@ import pandas as pd
 import seaborn as sns
 import yfinance as yf
 from prophet.plot import add_changepoints_to_plot, plot_cross_validation_metric
+from src.utils.file_manager import FileManager
 
 
 class Plotter:
     def __init__(self, ticker, last_days=None, future_periods=None):
         self.logger = logging.getLogger(__name__)
         self.image_path = config.IMAGE_PATH
-        self.ticker = ticker
+        self.ticker = FileManager.normalize_ticker_name(ticker)
         self.last_days = last_days
         self.future_periods = future_periods
         self.filenames = self.generate_filenames()
-        self.ensure_directory_exists(self.image_path)
-
-    def ensure_directory_exists(self, directory_path):
-        os.makedirs(directory_path, exist_ok=True)
+        FileManager.ensure_directory_exists(self.image_path)
 
     def generate_filenames(self):
         base_path = self.image_path
@@ -164,8 +162,7 @@ class Plotter:
         apds.append(mpf.make_addplot(overbought_line, panel=1, color='red', linestyle='--'))
         apds.append(mpf.make_addplot(oversold_line, panel=1, color='green', linestyle='--'))
 
-        mpf.plot(ohlc_data, type='candle', addplot=apds, volume='Volume' in ohlc_data.columns, figratio=(12, 8), style='charles',
-                 title="Candlestick with EMA, HiLo, and RSI", panel_ratios=(6, 1))
+        mpf.plot(ohlc_data, type='candle', addplot=apds, volume='Volume' in ohlc_data.columns, figratio=(12, 8), style='charles', title="Candlestick with EMA, HiLo, and RSI")
 
         plt.savefig(os.path.join(self.image_path, self.filenames["candlestick_RSI"]))
         plt.close('all')

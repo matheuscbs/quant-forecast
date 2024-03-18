@@ -36,9 +36,11 @@ def generate_indicator_calculator(plotter, data, **kwargs):
         except Exception as e:
             logging.error(f"Não foi possível converter 'data' para DataFrame: {e}")
             return None, None, []
-    data = IndicatorCalculator.calculate_RSI(data, 'Close')
-    data = IndicatorCalculator.calculate_EMA(data, 'Close')
-    data = IndicatorCalculator.calculate_HiLo(data, 'High', 'Low')
+
+    data = IndicatorCalculator.calculate_RSI(data, period=14)
+    data = IndicatorCalculator.calculate_EMA(data, period=21)
+    data = IndicatorCalculator.calculate_HiLo(data, period=14)
+
     description = "Analysis with RSI, EMA, and HiLo indicators."
     title = 'Análise Estatística'
     filenames = [plotter.plot_with_indicators(data, plotter.last_days)]
