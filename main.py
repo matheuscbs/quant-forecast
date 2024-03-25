@@ -5,11 +5,11 @@ from src.reporting.generate_report import ReportGenerator
 from src.reporting.pdf_report import PDFReportBuilder
 
 if __name__ == "__main__":
-    # data_fetcher = YahooFinanceFetcher()
-    data_fetcher = CryptoDataFetcher()
+    data_fetcher = YahooFinanceFetcher()
+    # data_fetcher = CryptoDataFetcher()
     data = data_fetcher.fetch_data()
-    print(data.columns)
-    if data is not None:
+    if data is not None and not data.empty:
+        print(data.columns)
         report_generator = ReportGenerator(data)
         report_generator.generate_report()
         report_generator.clean_up_files()

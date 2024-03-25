@@ -49,23 +49,24 @@ class YahooFinanceFetcher(IDataFetcher):
             return None
 
     def _fetch_intraday_data_concatenated(self, ticker, period_in_days, interval):
-        self.logger.info(f"Iniciando o download de dados intradiários para {ticker} com intervalo de {interval} e período de {period_in_days} dias...")
+        self.logger.info(f"Iniciando o download de dados intradiários para {ticker} com intervalo de {interval} e período de {period_in_days} dias.")
 
         end_date = datetime.now()
-        start_date = max(end_date - timedelta(days=period_in_days), datetime.now() - timedelta(days=730))
         all_data = []
-
         while period_in_days > 0:
+            days_to_request = min(period_in_days, 729)
+            start_date = end_date - timedelta(days=days_to_request)
+
+            self.logger.info(f"Preparando para baixar dados de {start_date.strftime('%Y-%m-%d')} até {end_date.strftime('%Y-%m-%d')}")
             try:
-                self.logger.info(f"Baixando dados de {start_date.date()} até {end_date.date()}")
                 temp_data = yf.download(ticker, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), interval=interval)
                 if not temp_data.empty:
+                    self.logger.info("Dados baixados com sucesso.")
                     all_data.append(temp_data)
-                    period_in_days -= (end_date - start_date).days
+                    period_in_days -= days_to_request
                     end_date = start_date - timedelta(days=1)
-                    start_date = max(end_date - timedelta(days=730), end_date - timedelta(days=period_in_days))
                 else:
-                    self.logger.warning("Dados vazios recebidos; interrompendo busca.")
+                    self.logger.warning("Dados vazios recebidos; interrompendo a busca.")
                     break
             except Exception as e:
                 self.logger.error(f"Erro ao baixar os dados para {ticker} entre {start_date} e {end_date}: {e}")
