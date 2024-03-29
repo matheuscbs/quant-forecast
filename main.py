@@ -4,14 +4,18 @@ from src.data.data_fetcher import YahooFinanceFetcher
 from src.reporting.generate_report import ReportGenerator
 from src.reporting.pdf_report import PDFReportBuilder
 
-if __name__ == "__main__":
+
+def process_ticker(ticker):
     data_fetcher = YahooFinanceFetcher()
-    # data_fetcher = CryptoDataFetcher()
-    data = data_fetcher.fetch_data()
+    data = data_fetcher.fetch_data(ticker=ticker)
     if data is not None and not data.empty:
-        print(data.columns)
-        report_generator = ReportGenerator(data)
+        print(f"Dados para {ticker}: ", data.columns)
+        report_generator = ReportGenerator(data, ticker=ticker)
         report_generator.generate_report()
         report_generator.clean_up_files()
     else:
-        print(f"Não foi possível buscar os dados para {config.TICKER}.")
+        print(f"Não foi possível buscar os dados para {ticker}.")
+
+if __name__ == "__main__":
+    for ticker in config.set_next_ticker():
+        process_ticker(ticker)

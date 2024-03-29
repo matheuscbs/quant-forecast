@@ -12,7 +12,7 @@ class YahooFinanceFetcher(IDataFetcher):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-    def fetch_data(self, ticker=config.TICKER, period=config.DEFAULT_PERIOD, interval=config.DEFAULT_INTERVAL):
+    def fetch_data(self, ticker, period=config.DEFAULT_PERIOD, interval=config.DEFAULT_INTERVAL):
         period_in_days = self._calculate_period_in_days(period)
 
         if interval == '1d' or period_in_days <= 730:

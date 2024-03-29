@@ -14,7 +14,7 @@ from .analysis_utils import (generate_indicator_calculator,
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class ReportGenerator:
-    def __init__(self, data, ticker=config.TICKER, period=config.DEFAULT_PERIOD, last_days=config.DEFAULT_LAST_DAYS, future_periods=config.DEFAULT_FUTURE_PERIODS, report_path=config.REPORT_PATH):
+    def __init__(self, data, ticker, period=config.DEFAULT_PERIOD, last_days=config.DEFAULT_LAST_DAYS, future_periods=config.DEFAULT_FUTURE_PERIODS, report_path=config.REPORT_PATH):
         self.data = data
         self.ticker = FileManager.normalize_ticker_name(ticker)
         self.period = period
