@@ -23,6 +23,8 @@ class CryptoDataFetcher(IDataFetcher):
             since_date = datetime.now() - timedelta(days=365 * period_value)
         elif period_unit == 'm':
             since_date = datetime.now() - timedelta(days=30 * period_value)
+        elif period_unit == 'w':
+            since_date = datetime.now() - timedelta(days=7 * period_value)
         elif period_unit == 'd':
             since_date = datetime.now() - timedelta(days=period_value)
         else:
@@ -52,13 +54,13 @@ class CryptoDataFetcher(IDataFetcher):
             self.logger.error(f"Erro ao buscar dados OHLCV: {e}")
             return []
 
-    def fetch_data(self):
+    def fetch_data(self, ticker):
         since_timestamp = self._calculate_since_from_period(config.DEFAULT_PERIOD)
         interval_ms = self._interval_to_milliseconds(config.DEFAULT_INTERVAL)
         end_timestamp = self.exchange.milliseconds()
 
         hours_diff = int((end_timestamp - since_timestamp) / interval_ms)
-        segments = [(config.TICKER, since_timestamp + i * interval_ms, self.max_request_limit) for i in range(min(hours_diff, self.max_request_limit))]
+        segments = [(ticker, since_timestamp + i * interval_ms, self.max_request_limit) for i in range(min(hours_diff, self.max_request_limit))]
 
         all_data = []
         with ThreadPoolExecutor(max_workers=5) as executor:
