@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import ccxt
 import config
 import pandas as pd
-from src.data.i_data_fetcher import IDataFetcher
+from src.data.fetcher.i_data_fetcher import IDataFetcher
 
 
 class CryptoDataFetcher(IDataFetcher):

@@ -1,6 +1,6 @@
 import config
-from src.data.crypto_data_fetcher import CryptoDataFetcher
-from src.data.data_fetcher import YahooFinanceFetcher
+from src.data.fetcher.crypto_data_fetcher import CryptoDataFetcher
+from src.data.fetcher.data_fetcher import YahooFinanceFetcher
 from src.reporting.generate_report import ReportGenerator
 from src.reporting.pdf_report import PDFReportBuilder
 

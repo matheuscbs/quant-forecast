@@ -5,7 +5,7 @@ import config
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from src.data.i_data_fetcher import IDataFetcher
+from src.data.fetcher.i_data_fetcher import IDataFetcher
 
 
 class YahooFinanceFetcher(IDataFetcher):
