@@ -14,6 +14,7 @@ INTRADAY_INTERVALS = ['1m', '5m', '15m', '30m', '1h', '90m', '1d']
 DEFAULT_INTERVAL = '1h'
 N_TRIALS = 1
 N_JOBS = 10
+MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/investimentos_db')
 
 def set_next_ticker():
     global CURRENT_TICKER

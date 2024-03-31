@@ -9,12 +9,21 @@ services:
       - "5678:5678"
     environment:
       - PYTHONUNBUFFERED=1
+      - MONGODB_URI=mongodb://mongodb:27017/investimentos
     command: /bin/bash -c "poetry run python -m debugpy --listen 0.0.0.0:5678 main.py"
     stdin_open: true
     tty: true
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-        reservations:
-          memory: 2G
+    depends_on:
+      - mongodb
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db # Persiste os dados do MongoDB
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root # Configurações iniciais (opcional)
+      - MONGO_INITDB_ROOT_PASSWORD=example # Configurações iniciais (opcional)
+volumes:
+  mongodb-data: # Define o volume para persistência de dados
+    name: mongodb-data
