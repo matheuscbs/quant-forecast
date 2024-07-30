@@ -1,4 +1,5 @@
 import config
+from dask.distributed import Client
 from src.data.fetcher.crypto_data_fetcher import CryptoDataFetcher
 from src.data.fetcher.data_fetcher import YahooFinanceFetcher
 from src.reporting.generate_report import ReportGenerator
@@ -6,10 +7,10 @@ from src.reporting.pdf_report import PDFReportBuilder
 
 
 def is_crypto(ticker):
-    return '/' in ticker
+    return "/" in ticker
 
-def process_ticker(ticker):
 
+def process_ticker(ticker, client):
     if is_crypto(ticker):
         data_fetcher = CryptoDataFetcher()
     else:
@@ -26,9 +27,10 @@ def process_ticker(ticker):
         print(f"Não foi possível buscar os dados para {ticker}.")
 
 if __name__ == "__main__":
-    for ticker in config.tickers:
-        if is_crypto(ticker):
-            process_ticker(ticker)
-        else:
-            for ticker in config.set_next_ticker():
-                process_ticker(ticker)
+    with Client() as client:  # Create the client outside the loop
+        for ticker in config.tickers:
+            if is_crypto(ticker):
+                process_ticker(ticker, client)
+            else:
+                for ticker in config.set_next_ticker():
+                    process_ticker(ticker, client)

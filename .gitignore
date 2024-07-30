@@ -1,0 +1,4 @@
+.venv
+session_name.session
+.env
+poetry.lock

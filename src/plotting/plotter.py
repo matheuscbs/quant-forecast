@@ -2,6 +2,7 @@ import logging
 import os
 
 import config
+import matplotlib as mpl
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import mplfinance as mpf
@@ -11,6 +12,10 @@ import yfinance as yf
 from prophet.plot import add_changepoints_to_plot, plot_cross_validation_metric
 from src.utils.file_manager import FileManager
 
+def _register_cmap(name, cmap):
+    mpl.colormaps.register(cmap, name=name)
+
+sns.cm.register_cmap = _register_cmap
 
 class Plotter:
     def __init__(self, ticker, last_days=None, future_periods=None):

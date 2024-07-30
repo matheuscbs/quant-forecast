@@ -1,5 +1,5 @@
 # Use a base image with Python installed. The version should match your project's requirements.
-FROM python:3.8-slim
+FROM python:3.9-slim
 
 # Set a working directory to avoid using absolute paths
 WORKDIR /app

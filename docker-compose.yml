@@ -18,7 +18,7 @@ services:
   mongodb:
     image: mongo:latest
     ports:
-      - "27017:27017"
+      - "27019:27019"
     volumes:
       - mongodb-data:/data/db # Persiste os dados do MongoDB
     environment:
