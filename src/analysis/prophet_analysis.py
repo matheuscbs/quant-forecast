@@ -1,6 +1,10 @@
 import logging
 
 import pandas as pd
+from config import COUNTRY_NAME
+from dask.dataframe import DataFrame as DaskDataFrame
+from dask.distributed import Client
+from prophet import Prophet
 from prophet.diagnostics import cross_validation
 from src.analysis.i_analysis import IAnalysis
 from src.optimization.data_granularity_checker import DataGranularityChecker
@@ -10,55 +14,61 @@ from src.optimization.hyperparameter_optimization import OptunaOptimization
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class ProphetAnalysis(IAnalysis):
-    def __init__(self, ticker, data, future_periods, country_name='BR'):
+    def __init__(self, ticker, data, future_periods, client=None):
         self.ticker = ticker
         self.data = data
         self.future_periods = future_periods
-        self.country_name = country_name
-        self.optuna_optimization = OptunaOptimization(country_name=country_name)
+        self.optuna_optimization = OptunaOptimization()
         self.model = None
         self.forecast = None
+        self.client = client or Client()
+        self.is_intraday = DataGranularityChecker.is_intraday(data)
 
     def optimize_and_fit(self):
-        """Otimiza os hiperparâmetros e ajusta o modelo aos dados."""
-        try:
-            logging.info("Starting hyperparameter optimization and model fitting")
-            best_params = self.optuna_optimization.optimize(self.data, self.future_periods)
-            is_intraday = DataGranularityChecker.is_intraday(self.data)
-            self.model = self.optuna_optimization._create_model(best_params, is_intraday)
-            self.model.fit(self.data)
-            logging.info("Model fitted successfully with best parameters.")
-        except Exception as e:
-            logging.error(f"Error during optimization and fitting: {e}")
-            raise  # Re-raise the exception for better debugging
+        if not isinstance(self.data, pd.DataFrame) or self.data.empty:
+            logging.error("No valid data provided for optimization and fitting.")
+            return
+
+        logging.info("Starting hyperparameter optimization and model fitting")
+        best_params = self.optuna_optimization.optimize(self.data, self.future_periods)
+        self.model = Prophet(**best_params)
+        self.model.add_country_holidays(country_name=COUNTRY_NAME)
+        self.model.fit(self.data)
 
     def cross_validate_model(self):
-        """Realiza a validação cruzada do modelo."""
+        if not self.model:
+            logging.error("Model is not fitted yet.")
+            return None
+
         logging.info("Starting cross-validation")
-        is_intraday = DataGranularityChecker.is_intraday(self.data)
-        initial, period, horizon = DataPreparation.calculate_adaptive_parameters(self.data, self.future_periods, is_intraday)
-        df_cv = cross_validation(self.model, initial=initial, period=period, horizon=horizon)
+        initial, period, horizon = DataPreparation.calculate_adaptive_parameters(
+            self.data, self.future_periods, self.is_intraday
+        )
+        df_cv = cross_validation(
+            self.model, initial=initial, period=period, horizon=horizon, parallel="processes"
+        )
         logging.info("Cross-validation completed.")
         return df_cv
 
     def make_forecast(self):
-        """Gera as previsões futuras."""
+        if not self.model:
+            logging.error("Model is not prepared to make forecasts.")
+            return None
+
         logging.info("Generating forecasts")
         future = self.model.make_future_dataframe(periods=self.future_periods)
         self.forecast = self.model.predict(future)
         return self.forecast
 
     def run_analysis(self):
-        """Executa a análise completa: otimização, ajuste, validação cruzada e previsão."""
-        if isinstance(self.data, pd.DataFrame) and not self.data.empty:
-            self.optimize_and_fit()
-            df_cv = self.cross_validate_model()
-            forecast = self.make_forecast()
-            return self.model, forecast, df_cv
-        else:
-            logging.error("Analysis cannot be completed due to data preparation issues.")
+        if not isinstance(self.data, pd.DataFrame) or self.data.empty:
+            logging.error("Data is not prepared properly for analysis.")
             return None, None, None
 
+        self.optimize_and_fit()
+        df_cv = self.cross_validate_model() if self.model else None
+        forecast = self.make_forecast() if self.model else None
+        return self.model, forecast, df_cv
+
     def analyze(self):
-        """Ponto de entrada para a análise."""
         return self.run_analysis()

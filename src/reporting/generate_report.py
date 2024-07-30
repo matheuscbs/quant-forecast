@@ -14,7 +14,7 @@ from .analysis_utils import (generate_indicator_calculator,
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class ReportGenerator:
-    def __init__(self, data, ticker, period=config.DEFAULT_PERIOD, last_days=config.DEFAULT_LAST_DAYS, future_periods=config.DEFAULT_FUTURE_PERIODS, report_path=config.REPORT_PATH):
+    def __init__(self, data, client, ticker, period=config.DEFAULT_PERIOD, last_days=config.DEFAULT_LAST_DAYS, future_periods=config.DEFAULT_FUTURE_PERIODS, report_path=config.REPORT_PATH):
         self.data = data
         self.ticker = FileManager.normalize_ticker_name(ticker)
         self.period = period
@@ -27,14 +27,15 @@ class ReportGenerator:
         FileManager.ensure_directory_exists(os.path.dirname(report_file_path))
         FileManager.ensure_directory_exists(self.report_path)
         self.builder = PDFReportBuilder(report_file_path)
+        self.client = client
 
     def generate_report(self):
         logging.info("Iniciando a geração do relatório")
         analysis_functions = [
-            generate_prophet_analysis,
+            lambda plotter, ticker, data, future_periods: generate_prophet_analysis(plotter, ticker, data, future_periods, client=self.client),
             generate_indicator_calculator,
             generate_strategy_evaluator,
-            generate_volatility_analysis,
+            generate_volatility_analysis
         ]
 
         titles, descriptions, image_paths = [], [], []

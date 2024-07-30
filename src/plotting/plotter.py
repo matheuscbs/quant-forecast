@@ -12,6 +12,7 @@ import yfinance as yf
 from prophet.plot import add_changepoints_to_plot, plot_cross_validation_metric
 from src.utils.file_manager import FileManager
 
+
 def _register_cmap(name, cmap):
     mpl.colormaps.register(cmap, name=name)
 
@@ -128,8 +129,7 @@ class Plotter:
         plt.show()
         ax.legend()
 
-        filename = os.path.join(self.image_path, f"HiLo_Strategy_{self.ticker}.png")
-        fig.savefig(filename)
+        fig.savefig(os.path.join(self.image_path, self.filenames["HiLo_Strategy"]), dpi=300)
         plt.close(fig)
         return self.filenames["HiLo_Strategy"]
 
@@ -167,10 +167,15 @@ class Plotter:
         apds.append(mpf.make_addplot(overbought_line, panel=1, color='red', linestyle='--'))
         apds.append(mpf.make_addplot(oversold_line, panel=1, color='green', linestyle='--'))
 
-        mpf.plot(ohlc_data, type='candle', addplot=apds, volume='Volume' in ohlc_data.columns, figratio=(12, 8), style='charles', title="Candlestick with EMA, HiLo, and RSI")
+        fig, axlist = mpf.plot(
+            ohlc_data, type='candle', addplot=apds,
+            volume='Volume' in ohlc_data.columns, figratio=(12, 8),
+            style='charles', title="Candlestick with EMA, HiLo, and RSI",
+            returnfig=True
+        )
 
-        plt.savefig(os.path.join(self.image_path, self.filenames["candlestick_RSI"]))
-        plt.close('all')
+        fig.savefig(os.path.join(self.image_path, self.filenames["candlestick_RSI"]), dpi=300)
+        plt.close(fig)
         return self.filenames["candlestick_RSI"]
 
     def plot_garch_volatility(self, futura_volatilidade):

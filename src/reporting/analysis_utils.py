@@ -7,10 +7,9 @@ from src.analysis.strategy_evaluator import StrategyEvaluator
 from src.analysis.volatility_analysis import VolatilityAnalysis
 
 
-def generate_prophet_analysis(plotter, ticker, data, **kwargs):
+def generate_prophet_analysis(plotter, ticker, data, future_periods=15, client=None):
     logging.info("Gerando análise do Prophet")
-    future_periods = kwargs.get('future_periods', 15)
-    prophet = ProphetAnalysis(ticker, data, future_periods)
+    prophet = ProphetAnalysis(ticker, data, future_periods, client=client)
     model, forecast, df_cv = prophet.analyze()
 
     if model is not None and not forecast.empty:

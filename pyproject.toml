@@ -25,6 +25,7 @@ dask = "^2024.7.1"
 distributed = "^2024.7.1"
 ccxt = "^4.3.68"
 dask-expr = "^1.1.9"
+plotly = "^5.23.0"
 
 [build-system]
 requires = ["poetry-core"]
