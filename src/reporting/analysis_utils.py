@@ -19,7 +19,6 @@ def generate_prophet_analysis(plotter, ticker, data, future_periods=15, client=N
         if df_cv is not None:
             filenames.extend([
                 plotter.plot_components(ticker, model, forecast),
-                plotter.plot_cross_validation_metric(df_cv, metric="mape", title="MAPE Metric", ticker=ticker),
                 plotter.plot_cross_validation_metric(df_cv, metric="rmse", title="RMSE Metric", ticker=ticker),
                 plotter.plot_last_days_forecast(data, forecast, future_periods, ticker, plotter.last_days),
             ])
