@@ -131,14 +131,16 @@ class YahooFinanceFetcher(IDataFetcher):
         data.dropna(how='all', inplace=True)
 
         # Preenchimento de dados nulos
-        data.fillna(method='ffill', inplace=True)
-        data.fillna(method='bfill', inplace=True)
+        data.ffill(inplace=True)
+        data.bfill(inplace=True)
 
         if data.isnull().values.any():
-            self.logger.warning("Dados nulos ainda presentes após o preenchimento. Substituindo por zero.")
+            columns_with_nulls = data.columns[data.isnull().any()].tolist()
+            self.logger.warning(f"Dados nulos ainda presentes após o preenchimento nas colunas: {columns_with_nulls}. Substituindo por zero.")
             data.fillna(0, inplace=True)
 
         data['Retornos'] = np.log(data['y'] / data['y'].shift(1))
+        data['Retornos'] = data['Retornos'].fillna(0)
 
         self.logger.info(f"Preparo dos dados concluído. Total de registros: {len(data)}")
         return data
