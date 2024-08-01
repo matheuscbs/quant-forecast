@@ -15,12 +15,17 @@ def generate_prophet_analysis(plotter, ticker, data, future_periods=15, client=N
     if model is not None and not forecast.empty:
         description = "Análise de Séries Temporais com Prophet"
         title = 'Análise de Séries Temporais com Prophet'
-        filenames = [
-            plotter.plot_prophet_forecast(ticker, model, forecast),
-            plotter.plot_components(ticker, model, forecast),
-            plotter.plot_cross_validation_metric(df_cv, metric="mape", title="MAPE Metric", ticker=ticker),
-            plotter.plot_last_days_forecast(data, forecast, future_periods, ticker, plotter.last_days)
-        ]
+        filenames = [plotter.plot_prophet_forecast(ticker, model, forecast)]
+        if df_cv is not None:
+            filenames.extend([
+                plotter.plot_components(ticker, model, forecast),
+                plotter.plot_cross_validation_metric(df_cv, metric="mape", title="MAPE Metric", ticker=ticker),
+                plotter.plot_cross_validation_metric(df_cv, metric="rmse", title="RMSE Metric", ticker=ticker),
+                plotter.plot_last_days_forecast(data, forecast, future_periods, ticker, plotter.last_days),
+            ])
+        else:
+            logging.warning("Não foi possível realizar a validação cruzada. Pulando plotagem das métricas.")
+
         return title, description, filenames
     else:
         logging.error("Falha ao gerar análise do Prophet.")

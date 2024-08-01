@@ -19,7 +19,6 @@ class HyperparameterOptimization(ABC):
     def optimize(self, data, future_periods):
         pass
 
-
 class OptunaOptimization(HyperparameterOptimization):
     def __init__(self, model_params=None):
         self.model_params = model_params or {}
@@ -46,14 +45,17 @@ class OptunaOptimization(HyperparameterOptimization):
             model.add_seasonality(name='hourly', period=24, fourier_order=8)
         else:
             model.add_seasonality(name='yearly', period=365.25, fourier_order=10)
-        model.add_country_holidays(country_name=config.COUNTRY_NAME)  # Use config value
+        model.add_country_holidays(country_name=config.COUNTRY_NAME)
         return model
 
     def _evaluate_model(self, model, data, initial, period, horizon):
         """Evaluates the model using cross-validation and returns the mean MAPE."""
         try:
-            data = data.compute()
+            # Assegurar que model.start é definido e não None
+            if model.start is None:
+                raise ValueError("Model start date is not defined.")
 
+            # Filtra os dados históricos até a data de início do modelo
             history = data[data['ds'] <= model.start]
             if history.shape[0] < 2:
                 raise ValueError('Less than two datapoints available to fit model.')
@@ -72,18 +74,16 @@ class OptunaOptimization(HyperparameterOptimization):
     def objective(self, trial, data_splits, future_periods):
         """Objective function for Optuna optimization."""
 
-        is_intraday = DataGranularityChecker.is_intraday(data_splits[0].compute())
+        is_intraday = DataGranularityChecker.is_intraday(data_splits[0])
         hyperparameters = self._adjust_hyperparameters(trial, is_intraday)
         model = self._create_model(hyperparameters, is_intraday)
 
         results = []
         for data_split in data_splits:
-            pd_data_split = data_split.compute()
-
             initial, period, horizon = DataPreparation.calculate_adaptive_parameters(
-                pd_data_split, future_periods, is_intraday
+                data_split, future_periods, is_intraday
             )
-            mape = self._evaluate_model(model, pd_data_split, initial, period, horizon)
+            mape = self._evaluate_model(model, data_split, initial, period, horizon)
             results.append(mape)
 
         results = [np.float16(mape) for mape in results]
@@ -100,9 +100,8 @@ class OptunaOptimization(HyperparameterOptimization):
         logging.info("Starting hyperparameter optimization with %d-fold cross-validation...", n_splits)
 
         ddata = dd.from_pandas(data, npartitions=config.N_JOBS)
-        data_splits = ddata.random_split([1 / n_splits] * n_splits)
+        data_splits = [split.compute() for split in ddata.random_split([1 / n_splits] * n_splits)]
 
-        # Removed the client variable assignment since it's unused
         study = optuna.create_study(direction='minimize', pruner=MedianPruner())
         study.optimize(lambda trial: self.objective(trial, data_splits, future_periods), n_trials=config.N_TRIALS, n_jobs=1)
 

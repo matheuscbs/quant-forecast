@@ -29,11 +29,22 @@ class ProphetAnalysis(IAnalysis):
             logging.error("No valid data provided for optimization and fitting.")
             return
 
+        if 'ds' not in self.data.columns or 'y' not in self.data.columns:
+            logging.error("Dataframe must contain 'ds' and 'y' columns.")
+            return
+
         logging.info("Starting hyperparameter optimization and model fitting")
         best_params = self.optuna_optimization.optimize(self.data, self.future_periods)
         self.model = Prophet(**best_params)
         self.model.add_country_holidays(country_name=COUNTRY_NAME)
-        self.model.fit(self.data)
+
+        try:
+            self.model.fit(self.data)
+            # Define manualmente a data de início com a menor data 'ds' no conjunto de dados
+            self.model.start = self.data['ds'].min()
+        except Exception as e:
+            logging.error(f"Error fitting the model: {e}")
+            self.model = None
 
     def cross_validate_model(self):
         if not self.model:

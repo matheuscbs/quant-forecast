@@ -16,12 +16,12 @@ class YahooFinanceFetcher(IDataFetcher):
         """
         Baixa dados do Yahoo Finance, otimizando o download para dados intradiários.
         """
-        period_in_days = self._calculate_period_in_days(period)
+        period_in_days = self._calculate_period_in_days(period) if period != 'max' else None
 
-        self.logger.info(f"Iniciando a busca de dados para {ticker} com período de {period} ({period_in_days} dias) e intervalo de {interval}.")
+        self.logger.info(f"Iniciando a busca de dados para {ticker} com período de {period} ({period_in_days if period_in_days else 'max'} dias) e intervalo de {interval}.")
 
-        if interval == '1d' or period_in_days <= 730:
-            data = self._fetch_single_period_data(ticker, period_in_days, interval)
+        if interval == '1d' or (period_in_days and period_in_days <= 730):
+            data = self._fetch_single_period_data(ticker, period if period == 'max' else period_in_days, interval)
         else:
             data = self._fetch_intraday_data_concatenated(ticker, period_in_days, interval)
 
@@ -33,20 +33,22 @@ class YahooFinanceFetcher(IDataFetcher):
         return data
 
     def _calculate_period_in_days(self, period):
-        """
-        Calcula o período em dias com base na string de período.
-        """
+        """ Calcula o período em dias com base na string de período. """
         try:
             period_value = int(period[:-1])
             period_unit = period[-1]
             if period_unit == 'y':
                 return period_value * 365
+            elif period_unit == 'mo':  # Adicionado suporte para meses
+                return period_value * 30
+            elif period_unit == 'd':  # Adicionado suporte para dias
+                return period_value
             else:
                 self.logger.error(f"Unidade de período '{period_unit}' não reconhecida.")
-                return 0
+                return None
         except ValueError:
-            self.logger.error(f"Erro ao converter período '{period}' para dias. Verifique o formato (ex: '1y', '6mo').")
-            return 0
+            self.logger.error(f"Erro ao converter período '{period}' para dias. Verifique o formato (ex: '1y', '6mo', '30d').")
+            return None
 
     def _fetch_single_period_data(self, ticker, period, interval):
         """
@@ -66,17 +68,23 @@ class YahooFinanceFetcher(IDataFetcher):
 
     def _fetch_intraday_data_concatenated(self, ticker, period_in_days, interval):
         """
-        Baixa dados intradiários em partes (chunks) e os concatena.
+        Baixa dados intradiários em partes (chunks) e os concatena, respeitando a data de IPO da ação e o limite de dias por requisição para o intervalo especificado.
         """
-
         self.logger.info(f"Baixando dados intradiários para {ticker} em lotes...")
+
         end_date = datetime.now()
+
+        # Obtém informações da ação, incluindo a data do IPO
+        ticker_info = yf.Ticker(ticker)
+        start_date_limit = ticker_info.info.get('firstTradeDate', datetime(2013, 1, 1))
+        start_date_limit = start_date_limit.replace(tzinfo=None)
+
         all_data = []
+        max_days_per_request = config.MAX_DAYS_PER_REQUEST.get(interval)  # Obtém o limite de dias por requisição para o intervalo
 
-        max_days_per_request = 729 if interval == "1h" else 729
-
-        while period_in_days > 0:
-            days_to_request = min(period_in_days, max_days_per_request)
+        while (period_in_days is None or period_in_days > 0) and end_date > start_date_limit:
+            # Calcula o número de dias a serem requisitados, respeitando o limite para o intervalo
+            days_to_request = min(period_in_days or float('inf'), max_days_per_request)
             start_date = end_date - timedelta(days=days_to_request)
 
             self.logger.info(f"Baixando dados de {start_date.strftime('%Y-%m-%d')} a {end_date.strftime('%Y-%m-%d')}...")
@@ -96,7 +104,8 @@ class YahooFinanceFetcher(IDataFetcher):
             except Exception as e:
                 self.logger.error(f"Erro ao baixar os dados para {ticker} entre {start_date.strftime('%Y-%m-%d')} e {end_date.strftime('%Y-%m-%d')}: {e}")
 
-            period_in_days -= days_to_request
+            if period_in_days is not None:
+                period_in_days -= days_to_request
             end_date = start_date - timedelta(days=1)
 
         if all_data:

@@ -26,17 +26,24 @@ except OSError as e:
     raise
 
 # Configurações padrão para busca de dados
-DEFAULT_PERIOD = '5y'
+DEFAULT_PERIOD = 'max'
 DEFAULT_LAST_DAYS = 30
 DEFAULT_FUTURE_PERIODS = 15
-INTRADAY_INTERVALS = ['1m', '5m', '15m', '30m', '1h', '90m', '1d']
 DEFAULT_INTERVAL = '1h'
 COUNTRY_NAME = 'BR'
 
 # Configurações para otimização de hiperparâmetros
-N_TRIALS = 1
-N_JOBS = 10
+N_TRIALS = 12
+MIN_TRIALS_FOR_OPTIMIZATION = 3
+N_JOBS = 20
+INTRADAY_INTERVALS = ["1m", "5m", "30m", "1h"]
 
+MAX_DAYS_PER_REQUEST = {
+    "1m": 7,
+    "5m": 15,
+    "30m": 60,
+    "1h": 729,
+}
 # URI para conexão com o banco de dados MongoDB (se aplicável)
 MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/investimentos_db')
 
