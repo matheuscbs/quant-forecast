@@ -126,7 +126,6 @@ class Plotter:
 
         plt.xticks(rotation=45)
         plt.tight_layout()
-        plt.show()
         ax.legend()
 
         fig.savefig(os.path.join(self.image_path, self.filenames["HiLo_Strategy"]), dpi=300)
