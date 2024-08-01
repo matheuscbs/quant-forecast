@@ -1,1 +1,0 @@
-Dados para PRIO3.SA:  Index(['ds', 'Open', 'High', 'Low', 'Close', 'y', 'Volume', 'Retornos'], dtype='object')
