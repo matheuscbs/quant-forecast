@@ -1,4 +1,5 @@
 import logging
+import os
 
 import pandas as pd
 from src.analysis.indicator_calculator import IndicatorCalculator
@@ -7,14 +8,38 @@ from src.analysis.strategy_evaluator import StrategyEvaluator
 from src.analysis.volatility_analysis import VolatilityAnalysis
 
 
+class AnalysisGenerator:
+    def __init__(self, function, required_args, title, description):
+        self.function = function
+        self.required_args = required_args
+        self.title = title
+        self.description = description
+
+    def generate(self, **kwargs):
+        filtered_kwargs = {arg: kwargs[arg] for arg in self.required_args if arg in kwargs}
+        try:
+            return self.function(**filtered_kwargs)
+        except Exception as e:
+            logging.error(f"Error generating {self.title} analysis: {e}")
+            return None, None, []
+
+    def _generate_title_description_filenames(self, title, description, filenames):
+        if title and description and filenames:
+            return title, description, filenames
+        else:
+            logging.error(f"Falha ao gerar análise {self.title}.")
+            return None, None, []
+
+    def _handle_errors(self, e):
+        logging.error(f"Erro ao gerar análise {self.title}: {e}")
+        return None, None, []
+
+
 def generate_prophet_analysis(plotter, ticker, data, future_periods=15, client=None):
-    logging.info("Gerando análise do Prophet")
     prophet = ProphetAnalysis(ticker, data, future_periods, client=client)
     model, forecast, df_cv = prophet.analyze()
 
     if model is not None and not forecast.empty:
-        description = "Análise de Séries Temporais com Prophet"
-        title = 'Análise de Séries Temporais com Prophet'
         filenames = [plotter.plot_prophet_forecast(ticker, model, forecast)]
         if df_cv is not None:
             filenames.extend([
@@ -25,7 +50,7 @@ def generate_prophet_analysis(plotter, ticker, data, future_periods=15, client=N
         else:
             logging.warning("Não foi possível realizar a validação cruzada. Pulando plotagem das métricas.")
 
-        return title, description, filenames
+        return 'Análise de Séries Temporais com Prophet', "Análise de Séries Temporais com Prophet", filenames
     else:
         logging.error("Falha ao gerar análise do Prophet.")
         return None, None, []
@@ -74,13 +99,18 @@ def generate_strategy_evaluator(plotter, ticker, data, **kwargs):
 
     return titles, descriptions, filenames
 
-def generate_volatility_analysis(plotter, data, **kwargs):
+def generate_volatility_analysis(plotter, data, models=['GARCH', 'EGARCH', 'GJR-GARCH'], horizon=30):
     logging.info("Generating volatility analysis")
     volatility_analysis = VolatilityAnalysis(data['Retornos'])
-    future_volatility = volatility_analysis.analyze()
+    future_volatility = volatility_analysis.analyze(models=models, horizon=horizon)
 
-    descriptions = f"Futura Volatilidade: {future_volatility.iloc[-1].item():.2f}%"
-    titles = 'Análise de Volatilidade'
-    filenames = [plotter.plot_garch_volatility(future_volatility)]
+    descriptions = []
+    titles = []
+    filenames = []
+
+    for model_name, vol in future_volatility.items():
+        descriptions.append(f"Modelo: {model_name}, Futura Volatilidade: {vol.iloc[-1].item():.2f}%")
+        titles.append(f'Análise de Volatilidade - {model_name}')
+        filenames.append(plotter.plot_garch_volatility(vol, title=titles[-1]))
 
     return titles, descriptions, filenames

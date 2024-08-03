@@ -47,14 +47,26 @@ class OptunaOptimization(HyperparameterOptimization):
         """Evaluates the model using cross-validation and returns the mean MAPE."""
         try:
             start_date = pd.to_datetime(data['ds'].min())
-            end_date = pd.to_datetime(data['ds'].max()) - pd.to_timedelta(horizon)
-            cutoffs = pd.date_range(start=start_date, end=end_date, freq=period).to_pydatetime().tolist()
+            end_date = pd.to_datetime(data['ds'].max()) - horizon
 
-            if len(cutoffs) < 2 or cutoffs[0] <= start_date:
-                logging.error("Insufficient data points for the given frequency and horizon.")
+            # Verificação do número de pontos de dados
+            min_data_points = 3 * (horizon.days)
+            if len(data) < min_data_points:
+                logging.warning(f"Insufficient data points ({len(data)}) for cross-validation. Skipping model evaluation.")
                 return float('inf')
 
-            cutoffs = cutoffs[:-1]  # Ensure we do not include the last element if only one exists
+            # Ajuste dinâmico da frequência
+            period_timedelta = period
+            max_cutoffs = (end_date - start_date) // period_timedelta
+            while max_cutoffs < 2:
+                period_timedelta *= 2
+                max_cutoffs = (end_date - start_date) // period_timedelta
+                logging.warning(f"Increasing period for cross-validation to {period_timedelta}.")
+
+            cutoffs = pd.date_range(start=start_date + period_timedelta, end=end_date, freq=period_timedelta).to_pydatetime().tolist()
+
+            if len(cutoffs) > 48:
+                cutoffs = cutoffs[::len(cutoffs) // 48]
 
             df_cv = cross_validation(model, initial=initial, period=period, horizon=horizon, cutoffs=cutoffs, parallel="processes")
             df_p = performance_metrics(df_cv)
@@ -69,12 +81,18 @@ class OptunaOptimization(HyperparameterOptimization):
         hyperparameters = self._adjust_hyperparameters(trial, is_intraday)
         results = []
 
-        for data_split in data_splits:
-            model = self._create_model(hyperparameters, is_intraday)
-            model.fit(data_split)
-            initial, period, horizon = DataPreparation.calculate_adaptive_parameters(data_split, future_periods, is_intraday)
-            mape = self._evaluate_model(model, data_split, initial, period, horizon)
-            results.append(mape)
+        for i, data_split in enumerate(data_splits):
+            try:
+                model = self._create_model(hyperparameters, is_intraday)
+                model.fit(data_split)
+                initial, period, horizon = DataPreparation.calculate_adaptive_parameters(data_split, future_periods, is_intraday)
+                mape = self._evaluate_model(model, data_split, initial, period, horizon)
+                results.append(mape)
+            except Exception as e:
+                logging.error(f"Error during objective evaluation: {e}")
+                results.append(float('inf'))
+
+            logging.info(f"Trial {trial.number}: Completed {i + 1}/{len(data_splits)} data splits with MAPE={results[-1]:.4f}")
 
         return np.mean(results)
 

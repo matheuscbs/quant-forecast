@@ -6,7 +6,7 @@ from src.plotting.plotter import Plotter
 from src.reporting.pdf_report import PDFReportBuilder
 from src.utils.file_manager import FileManager
 
-from .analysis_utils import (generate_indicator_calculator,
+from .analysis_utils import (AnalysisGenerator, generate_indicator_calculator,
                              generate_prophet_analysis,
                              generate_strategy_evaluator,
                              generate_volatility_analysis)
@@ -32,19 +32,40 @@ class ReportGenerator:
     def generate_report(self):
         logging.info("Iniciando a geração do relatório")
         analysis_functions = [
-            lambda plotter, ticker, data, future_periods: generate_prophet_analysis(plotter, ticker, data, future_periods, client=self.client),
-            generate_indicator_calculator,
-            generate_strategy_evaluator,
-            generate_volatility_analysis
+            AnalysisGenerator(
+                generate_prophet_analysis,
+                ['plotter', 'ticker', 'data', 'future_periods', 'client'],
+                'Forecast de Séries Temporais',
+                "Forecast de Séries Temporais"
+            ),
+            AnalysisGenerator(
+                generate_indicator_calculator,
+                ['plotter', 'data'],
+                'Análise Estatística',
+                "Análises com RSI, EMA, e HiLo indicators."
+            ),
+            AnalysisGenerator(
+                generate_strategy_evaluator,
+                ['plotter', 'ticker', 'data'],
+                'Avaliação da Estratégia HiLo Activator',
+                "Avaliação da performance da estratégia HiLo Activator."
+            ),
+            AnalysisGenerator(
+                generate_volatility_analysis,
+                ['plotter', 'data'],
+                'Análise de Volatilidade',
+                "Análise da volatilidade dos retornos utilizando modelos GARCH."
+            )
         ]
 
         titles, descriptions, image_paths = [], [], []
-        for func in analysis_functions:
-            title, description, filenames = func(
+        for analysis_function in analysis_functions:
+            title, description, filenames = analysis_function.generate(
                 plotter=self.plotter,
                 ticker=self.ticker,
                 data=self.data,
-                future_periods=self.future_periods
+                future_periods=self.future_periods,
+                client=self.client
             )
             if title and description and filenames:
                 titles.append(title)
@@ -62,8 +83,11 @@ class ReportGenerator:
     def clean_up_files(self):
         logging.info("Iniciando a limpeza dos arquivos temporários")
         for path in self.image_paths:
-            try:
-                os.remove(path)
-                logging.info(f"Arquivo {path} removido com sucesso.")
-            except OSError as e:
-                logging.error(f"Erro ao remover arquivo {path}: {e}")
+            if os.path.isfile(path):
+                try:
+                    os.remove(path)
+                    logging.info(f"Arquivo {path} removido com sucesso.")
+                except OSError as e:
+                    logging.error(f"Erro ao remover arquivo {path}: {e}")
+            else:
+                logging.warning(f"Arquivo não encontrado: {path}")

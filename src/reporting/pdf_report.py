@@ -16,8 +16,13 @@ class PDFReporter:
         self.elements = []
 
     def _add_paragraph(self, text, style):
-        self.elements.append(Paragraph(text, self.styles[style]))
-        self.elements.append(Spacer(1, 12))
+        try:
+            if isinstance(text, list):
+                text = " ".join(text)
+            self.elements.append(Paragraph(str(text), self.styles[style]))
+            self.elements.append(Spacer(1, 12))
+        except Exception as e:
+            logging.error(f"Erro ao adicionar parágrafo: {e}")
 
     def _add_image(self, image_path):
         if os.path.isfile(image_path):

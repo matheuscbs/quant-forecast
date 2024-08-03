@@ -95,11 +95,6 @@ class Plotter:
             self.logger.error("Falha na conversão do índice para DatetimeIndex. Verifique os dados de entrada.")
             return None
 
-        print('Price index min \n')
-        print(price_data.index.min())
-        print('Price index max \n')
-        print(price_data.index.max())
-
         if not isinstance(hilo_long, pd.Series):
             hilo_long = pd.Series(hilo_long, index=price_data.index)
         if not isinstance(hilo_short, pd.Series):
@@ -177,16 +172,19 @@ class Plotter:
         plt.close(fig)
         return self.filenames["candlestick_RSI"]
 
-    def plot_garch_volatility(self, futura_volatilidade):
+    def plot_garch_volatility(self, futura_volatilidade, title='Previsão de Volatilidade - Modelo GARCH', filename=None):
         fig, ax = plt.subplots(figsize=(10, 6))
         futura_volatilidade.plot(ax=ax, title='Previsão de Volatilidade - Modelo GARCH')
         ax.set_xlabel('Dias Futuros')
         ax.set_ylabel('Volatilidade (%)')
         ax.legend(['Volatilidade Prevista'])
+        ax.set_title(title)
 
-        fig.savefig(os.path.join(self.image_path, self.filenames["volatility"]))
+        if filename is None:
+            filename = os.path.join(self.image_path, f"volatility_{self.ticker}_{title.split(' - ')[-1].lower()}.png")
+        fig.savefig(filename)
         plt.close(fig)
-        return self.filenames["volatility"]
+        return filename
 
     def plot_cross_validation_metric(self, df_cv, metric, title, ticker):
         fig = plt.figure(figsize=(10, 6))

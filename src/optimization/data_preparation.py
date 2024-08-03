@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 from src.optimization.data_granularity_checker import DataGranularityChecker
 
@@ -7,42 +9,33 @@ class DataPreparation:
     def calculate_adaptive_parameters(data, future_periods, is_intraday):
         """Calcula parâmetros adaptativos para cross_validation do Prophet."""
         total_days = (data["ds"].max() - data["ds"].min()).days
-
         inferred_freq = pd.infer_freq(data["ds"])
+
+        # Heurística para definir o período ideal
+        period_map = {
+            "T": pd.to_timedelta("1 days"),    # Minuto
+            "H": pd.to_timedelta("1 days"),    # Hora
+            "D": pd.to_timedelta("30 days"),   # Dia
+            "W": pd.to_timedelta("90 days"),   # Semana
+            "M": pd.to_timedelta("365 days"),  # Mês
+        }
+
         if is_intraday:
-            if inferred_freq is None:
-                raise ValueError("Frequência dos dados não detectada para dados intraday")
-
-            freq_unit = inferred_freq[0]
-
-            # Períodos totais:
-            period_to_days = {'T': 1 / (24 * 60), 'H': 1 / 24}
-            total_periods = total_days / period_to_days.get(freq_unit, 1)
-
-            max_horizon_periods = int(0.75 * total_periods)
-
-            horizon_periods = min(
-                future_periods * 60 if freq_unit == 'T' else future_periods,
-                max_horizon_periods
-            )
-
-            # Initial:
-            initial_periods = total_periods - horizon_periods - max(24 * 60 if freq_unit == 'T' else 48, horizon_periods)
-            initial_periods = max(initial_periods, 24 * 60 if freq_unit == 'T' else 48)
-
-            period_periods = min(initial_periods // 2, horizon_periods)
-
-            initial_str = f"{initial_periods // 24}D" if initial_periods >= 24 else f"{initial_periods}H"
-            period_str = f"{period_periods // 24}D" if period_periods >= 24 else f"{period_periods}H"
-            horizon_str = f"{horizon_periods // 24}D" if horizon_periods >= 24 else f"{horizon_periods}H"
+            period = pd.to_timedelta("1 days")  # Força o período para 1 dia para dados intraday
+        elif inferred_freq is not None and inferred_freq[0] in period_map:
+            period = period_map[inferred_freq[0]]
         else:
-            initial_proportion = 0.8
-            horizon_days = min(future_periods, int(total_days * (1 - initial_proportion)) - 30)
-            initial_days = max(365, int(total_days * initial_proportion))
-            period_days = max(30, horizon_days // 3)
+            period = pd.to_timedelta(max(1, total_days // 20), unit='D')  # Estima o período com base no total de dias
 
-            initial_str = f"{initial_days}D"
-            period_str = f"{period_days}D"
-            horizon_str = f"{horizon_days}D"
+        # Limites para horizonte e initial
+        max_horizon = min(pd.to_timedelta(total_days * 0.2, unit='D'), period * 10)  # Máximo de 20% dos dados ou 10 períodos
+        min_initial = max(period * 3, pd.to_timedelta(30, unit='D'))  # Mínimo de 3 períodos ou 30 dias
 
-        return initial_str, period_str, horizon_str
+        # Ajuste do horizonte com base no future_periods e limites
+        horizon = min(pd.to_timedelta(f"{future_periods} days"), max_horizon)
+
+        # Cálculo do initial com base no horizonte e limites
+        initial = max(pd.to_timedelta(total_days, unit='D') - horizon, min_initial)
+
+        logging.info(f"Parâmetros adaptativos calculados: initial={initial}, period={period}, horizon={horizon}")
+        return initial, period, horizon

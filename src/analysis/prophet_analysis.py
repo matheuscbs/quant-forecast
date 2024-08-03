@@ -35,6 +35,7 @@ class ProphetAnalysis(IAnalysis):
 
         logging.info("Starting hyperparameter optimization and model fitting")
         best_params = self.optuna_optimization.optimize(self.data, self.future_periods)
+        logging.info(f"Best hyperparameters: {best_params}")
         self.model = Prophet(**best_params)
         self.model.add_country_holidays(country_name=COUNTRY_NAME)
 
@@ -42,6 +43,7 @@ class ProphetAnalysis(IAnalysis):
             self.model.fit(self.data)
             # Define manualmente a data de início com a menor data 'ds' no conjunto de dados
             self.model.start = self.data['ds'].min()
+            logging.info("Model fitting completed successfully")
         except Exception as e:
             logging.error(f"Error fitting the model: {e}")
             self.model = None
@@ -52,14 +54,18 @@ class ProphetAnalysis(IAnalysis):
             return None
 
         logging.info("Starting cross-validation")
-        initial, period, horizon = DataPreparation.calculate_adaptive_parameters(
-            self.data, self.future_periods, self.is_intraday
-        )
-        df_cv = cross_validation(
-            self.model, initial=initial, period=period, horizon=horizon, parallel="processes"
-        )
-        logging.info("Cross-validation completed.")
-        return df_cv
+        try:
+            initial, period, horizon = DataPreparation.calculate_adaptive_parameters(
+                self.data, self.future_periods, self.is_intraday
+            )
+            df_cv = cross_validation(
+                self.model, initial=initial, period=period, horizon=horizon, parallel="processes"
+            )
+            logging.info("Cross-validation completed successfully")
+            return df_cv
+        except Exception as e:
+            logging.error(f"Error during cross-validation: {e}")
+            return None
 
     def make_forecast(self):
         if not self.model:
@@ -67,9 +73,14 @@ class ProphetAnalysis(IAnalysis):
             return None
 
         logging.info("Generating forecasts")
-        future = self.model.make_future_dataframe(periods=self.future_periods)
-        self.forecast = self.model.predict(future)
-        return self.forecast
+        try:
+            future = self.model.make_future_dataframe(periods=self.future_periods)
+            self.forecast = self.model.predict(future)
+            logging.info("Forecast generation completed successfully")
+            return self.forecast
+        except Exception as e:
+            logging.error(f"Error during forecast generation: {e}")
+            return None
 
     def run_analysis(self):
         if not isinstance(self.data, pd.DataFrame) or self.data.empty:
