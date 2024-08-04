@@ -4,7 +4,8 @@ import os
 # Lista de tickers a serem processados
 # tickers = ['SUZB3', 'KLBN3', 'CRFB3', 'BPAC3', 'GFSA3', 'SAPR4', 'BMEB4', 'CMIG4', 'AURE3', 'EUCA4', 'MGLU3', 'AGRO3', 'ROMI3', 'JHSF3', 'FESA4', 'COCE5', 'JBSS3', 'BMGB4', 'BHIA3', 'VIVT3', 'TASA4', 'PCAR3', 'ASAI3', 'TAEE11', 'LREN3', 'MRVE3', 'ITUB4', 'ITSA4', 'WEGE3', 'PETR4', 'VALE3', 'BBAS3', 'BRAP4', 'CMIN3', 'CSNA3', 'USIM5']
 # tickers = ['PRIO3', 'RRRP3', 'PETR4', 'VALE3', 'BRAP4', 'BBAS3', 'VALE3', 'BRAP4', 'CMIN3', ]
-tickers = ['BBDC4']
+tickers = ['WEGE3', 'PETR4', 'VALE3', 'ITUB4', 'MGLU3']
+option = ['VALE']
 # tickers = ['BTC/USDT']
 
 # Variável para armazenar o ticker atual sendo processado
